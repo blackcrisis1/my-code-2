@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <title>Home Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.8/dist/vue.js" type="text/javascript"></script>
+</head>
+<style>
+    /* Foundation */
+    *,
+    *:before,
+    *:after {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+    }
+
+    .overlay,
+    .crosshairs,
+    .borderedBox {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    .image-container {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        cursor: crosshair;
+    }
+
+    .image-clip {
+        aspect-ratio: 1;
+        width: 100%;
+    }
+
+    .overlay {
+        /* position: fixed; */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        /* background-color: rgba(0, 0, 0, 0.5); */
+    }
+
+    .overlay.highlighting {
+        background: none;
+        border-color: rgba(0, 0, 0, 0.5);
+        border-style: solid;
+    }
+
+    .crosshairs {
+        height: 100%;
+        position: absolute;
+        width: 100%;
+        z-index: 2147483645;
+    }
+
+    .crosshairs.hidden {
+        display: none;
+    }
+
+    .crosshairs::before,
+    .crosshairs::after {
+        content: "";
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        border: none !important;
+        -o-border-image: !important;
+        border-image: !important;
+    }
+
+    .crosshairs::before {
+        left: -100%;
+        top: -100%;
+        border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .crosshairs::after {
+        left: 0px;
+        top: 0px;
+        border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-left: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .container {
+        /* clear: both;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        background-image: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/260969/kendrick-lamar.png");
+        background-repeat: no-repeat;
+        background-size: cover; */
+    }
+
+    .borderedBox {
+        border: 1px solid #fff;
+        position: absolute;
+    }
+
+    .borderedBox.hidden {
+        display: none;
+    }
+
+    .Flash {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background-color: #fff;
+        z-index: 2147483646;
+        opacity: 1;
+        -webkit-animation-delay: 0.2s;
+        animation-delay: 0.2s;
+        -webkit-animation-name: fade-out;
+        animation-name: fade-out;
+        -webkit-animation-duration: 1s;
+        animation-duration: 1s;
+        -webkit-animation-iteration-count: 1;
+        animation-iteration-count: 1;
+        -webkit-animation-fill-mode: forwards;
+        animation-fill-mode: forwards;
+    }
+
+    .screenshot-enter-active,
+    .screenshot-leave-active {
+        transition: opacity 0.2s;
+    }
+
+    .screenshot-enter,
+    .screenshot-leave-to {
+        opacity: 0;
+    }
+
+    @-webkit-keyframes fade-out {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+        }
+    }
+
+    @keyframes fade-out {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+        }
+    }
+</style>
+
+<body>
+    <div id="app">
+        <div class="container">
+            <div ref="screenshot" class="image-container" @mousemove="move" @mousedown="mouseDown" @mouseup="mouseUp">
+                <img src="/test2.png" alt="" class="image-clip" />
+                <!-- <transition name="screenshot">
+                    <div class="Flash" v-if="tookScreenShot"></div>
+                </transition> -->
+                <div class="overlay" :class="{ 'highlighting' : mouseIsDown }" :style="{ borderWidth: borderWidth }">
+                </div>
+            </div>
+            <img :src="imageSrc" alt="" />
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        var crosshairs, overlay;
+
+        var screenshot = new Vue({
+            el: "#app",
+            data: {
+                mouseIsDown: false,
+                isDragging: false,
+                tookScreenShot: false,
+                startX: 0,
+                startY: 0,
+                endX: 0,
+                endY: 0,
+                borderWidth: "",
+                crossHairsLeft: 0,
+                crossHairsTop: 0,
+                boxTop: 0,
+                boxLeft: 0,
+                boxEndWidth: 0,
+                boxEndHeight: 0,
+                imageHeigth: 600,
+                imageWidth: 600,
+                imageSrc: ''
+            },
+            mounted: function () {
+                crosshairs = document.querySelector(".crosshairs");
+                overlay = document.querySelector(".overlay");
+
+                var self = this;
+
+                this.imageWidth = this.$refs.screenshot.clientWidth;
+                this.imageHeigth = this.$refs.screenshot.clientHeight;
+            },
+            methods: {
+                move: function (e) {
+                    if (this.mouseIsDown) {
+                        var endY = this.endY = e.clientY,
+                            endX = this.endX = e.clientX,
+                            startX = this.startX,
+                            startY = this.startY,
+                            imageWidth = this.imageWidth,
+                            imageHeigth = this.imageHeigth;
+
+                        if (endX >= startX && endY >= startY) {
+                            this.isDragging = true;
+                            this.borderWidth = startY + "px " + (imageWidth - endX) + "px " + (imageHeigth - endY) + "px " + startX + "px";
+                            this.boxTop = startY;
+                            this.boxLeft = startX;
+                            this.boxEndWidth = endX - startX;
+                            this.boxEndHeight = endY - startY;
+
+                        } else if (endX <= startX && endY >= startY) {
+                            this.isDragging = true;
+                            this.borderWidth = startY + "px " + (imageWidth - startX) + "px " + (imageHeigth - endY) + "px " + endX + "px";
+                            this.boxLeft = endX;
+                            this.boxTop = startY;
+                            this.boxEndWidth = startX - endX;
+                            this.boxEndHeight = endY - startY;
+                        } else if (endX >= startX && endY <= startY) {
+                            this.isDragging = true;
+                            this.boxLeft = startX;
+                            this.boxTop = endY;
+                            this.boxEndWidth = endX - startX;
+                            this.boxEndHeight = startY - endY;
+                        } else if (endX <= startX && endY <= startY) {
+                            this.isDragging = true;
+                            this.boxLeft = endX;
+                            this.boxTop = endY;
+                            this.boxEndWidth = startX - endX;
+                            this.boxEndHeight = startY - endY;
+                            this.borderWidth = endY + "px " + (imageWidth - startX) + "px " + (imageHeigth - startY) + "px " + endX + "px";
+                        } else {
+                            this.isDragging = false;
+                        }
+                    }
+                },
+                mouseDown: function (e) {
+                    this.borderWidth = this.startY + "px " + (this.imageWidth - this.endX) + "px " + (this.imageHeigth - this.endY) + "px " + this.startX + "px";
+                    this.startX = e.clientX;
+                    this.startY = e.clientY;
+                    this.mouseIsDown = true;
+                    this.tookScreenShot = false;
+                },
+                mouseUp: function (e) {
+                    this.borderWidth = 0;
+                    if (this.isDragging) {
+                        const container = this.$refs.screenshot;
+
+                        const width = Math.abs(this.endX - this.startX);
+                        const height = Math.abs(this.endY - this.startY);
+
+                        const left = Math.min(this.startX, this.endX);
+                        const top = Math.min(this.startY, this.endY);
+
+                        html2canvas(container, {
+                            x: left,
+                            y: top,
+                            width: width,
+                            height: height
+                        }).then(canvas => {
+                            const clippedImageSrc = canvas.toDataURL();
+
+                            const objectUrl = URL.createObjectURL(this.dataURItoBlob(clippedImageSrc));
+                            console.log(objectUrl);
+                            this.imageSrc = objectUrl
+                            const formData = new FormData();
+
+                            formData.append('image', clippedImageSrc);
+
+                            // fetch('your_upload_url', {
+                            //     method: 'POST',
+                            //     body: formData
+                            // }).then(response => {
+
+                            // });
+
+                            this.tookScreenShot = true;
+                        });
+                    }
+                    this.isDragging = false;
+                    this.mouseIsDown = false;
+                    this.startX = 0;
+                    this.startY = 0;
+                    this.endX = 0;
+                    this.endY = 0;
+
+                },
+                dataURItoBlob(dataURI) {
+                    // Convert a data URI to a Blob
+                    const byteString = atob(dataURI.split(',')[1]);
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    for (let i = 0; i < byteString.length; i++) {
+                        ia[i] = byteString.charCodeAt(i);
+                    }
+                    return new Blob([ab], { type: 'image/png' }); // Adjust the type as needed
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

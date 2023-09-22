@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <title>Home Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.8/dist/vue.js" type="text/javascript"></script>
+</head>
+<style>
+    .video-wrapper {
+        padding: 0;
+        list-style: none;
+        margin: 1rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(1, 1fr));
+        gap: .5rem;
+    }
+</style>
+
+<body>
+    <div id="app">
+        <div class="video-wrapper">
+            <!-- <video width="100%" height="100%" controls v-for="(asset, index) in assetList" :key="index">
+                <source :src="asset + '#t=0.001'" type="video/mp4">
+            </video> -->
+            <video width="100%" height="100%" controls ref="videoPlayer">
+                <source :src="currentAsset + '#t=0.001'" type="video/mp4">
+            </video>
+            <button @click="next()">next</button>
+        </div>
+    </div>
+
+    <script>
+
+        new Vue({
+            delimiters: ["[[", "]]"],
+            el: '#app',
+            data: {
+                assetList: [
+                    '/assets/01.mp4',
+                    '/assets/02.mp4',
+                    '/assets/03.mp4',
+                    '/assets/04.mp4',
+                    '/assets/05.mp4',
+                    '/assets/06.mp4',
+                    '/assets/07.mp4',
+                    '/assets/08.mp4',
+                    '/assets/09.mp4',
+                    '/assets/10.mp4',
+                    '/assets/11.mp4',
+                    '/assets/12.mp4',
+                    '/assets/13.mp4',
+                    '/assets/14.mp4',
+                    '/assets/15.mp4',
+                    '/assets/16.mp4',
+                    '/assets/17.mp4',
+                    '/assets/18.mp4',
+                    '/assets/19.mp4',
+                    '/assets/20.mp4',
+                ],
+                currentIndex: 0
+            },
+            computed: {
+                currentAsset() {
+                    return this.assetList[this.currentIndex];
+                }
+            },
+            methods: {
+                next() {
+                    this.currentIndex = (this.currentIndex + 1) % this.assetList.length;
+                    this.reloadVideoPlayer();
+                },
+                reloadVideoPlayer() {
+                    const videoPlayer = this.$refs.videoPlayer;
+                    videoPlayer.pause();
+                    videoPlayer.currentTime = 0;
+                    videoPlayer.load();
+                    videoPlayer.pause();
+                }
+            },
+
+        });
+
+
+    </script>
+</body>
+
+</html>
